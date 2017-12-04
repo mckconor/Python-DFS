@@ -1,13 +1,17 @@
 from flask import Flask
+from flask import jsonify
+from flask import request
 import pymongo
+import base64
+from Crypto.Cipher import AES
+from pprint import pprint
 
-mongo_server = "localhost"
-mongo_port = "27017"
-connect_string = "mongodb://" + mongo_server + ":" + mongo_port
-connection = pymongo.MongoClient(connect_string)
+from master import application_master
+from authServ import application_auth
 
-db = connection.project
+application = Flask(__name__)
+application.register_blueprint(application_master)
+application.register_blueprint(application_auth)
 
-db.servers.insert(
-		{"id": 1}
-	)
+if __name__ == '__main__':
+	application.run()

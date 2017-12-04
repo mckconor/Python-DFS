@@ -2,12 +2,13 @@
 from flask import Flask
 from flask import jsonify
 from flask import request
+from flask import Blueprint
 import pymongo
 import base64
 from Crypto.Cipher import AES
 from pprint import pprint
 
-application = Flask(__name__)
+application_auth = Blueprint('application_auth',__name__)
 
 serv_addr = "localhost"
 port = "27017"
@@ -44,12 +45,12 @@ def decode_string(key, string):
     string = string[:-string[-1]]
     return string.decode('utf-8')
 
-@application.route('/test', methods=['GET', 'POST'])
+@application_auth.route('/test', methods=['GET', 'POST'])
 def test():
 	print("test post")
 	return jsonify({})
 
-@application.route('/register', methods=['POST'])
+@application_auth.route('/register', methods=['POST'])
 def register():
 	user_data = request.get_json(force=True)
 
@@ -72,7 +73,7 @@ def register():
 	jsonString = {"response_code": 200}
 	return jsonify(jsonString)
 
-@application.route('/authenticate', methods=['POST'])
+@application_auth.route('/authenticate', methods=['POST'])
 def authenticate():
 	in_data = request.get_json(force=True)
 
@@ -95,7 +96,7 @@ def authenticate():
 
 	return jsonify(jsonString)
 
-@application.route('/logout', methods=['POST'])
+@application_auth.route('/logout', methods=['POST'])
 def logout():
 	in_data = request.get_json(force=True)
 
@@ -110,5 +111,5 @@ def logout():
 	jsonString = {"response_code": 200}
 	return jsonify(jsonString)
 
-if __name__ == '__main__':
-	application.run()
+# if __name__ == '__main__':
+# 	application.run()
