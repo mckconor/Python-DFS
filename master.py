@@ -16,13 +16,53 @@ mongo_db_addr = "mongodb://" + serv_addr + ":" + port
 mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs	#connect in to dfs db
 
+def encode_string(key, string):
+	ba = bytearray()
+	ba.extend(map(ord, string))
+	length = 16 - (len(string) % 16)
+	ba += bytes([length]) * length
+	return base64.urlsafe_b64encode(ba)
+
+def decode_string(key, string):
+    string = base64.urlsafe_b64decode(string)
+    string = string[:-string[-1]]
+    return string.decode("utf-8")
+
+
 @application_master.route('/file/upload', methods=['POST'])
 def upload():
 	data_in = request.get_data()
 	print("hitting upload")
-	return jsonify({"succ": True})
+
+	file_name = decode_string(data_in.get("file_name"))
+	file_contents = decode_string(data_in.get("file_contents"))
+
+	#Find a free server
+	server = mongo_db.servers.findOne()
+
+	#Store that bad boy
+	data = {"file_name": file_name, "server": server}
+	mongo_db.files.insert(data) #into files db (ie: where the file contents are)
+	mongo_db.servers.update_one(server, {"$set": {"file": data_in}}) #"file_name": file_name, "file_contents": file_contents}
+
+	return jsonify({"response_code": 200})
+
+@application_master.route('/file/download', methods=['POST'])
+def download():
+	data_in = request.get_data()
+	print("hitting download")
+
+	file_name = decode_string(data_in.get("file_name"))
+
+	#Find where file is
+	server = mongo_db.files.findOne({"file_name": file_name})
+
+	#Grab them contents boii
+	file = mongo_db.servers.findOne(server).get("file")
+
+	print(file)
+	return jsonify({"response_code": 200})
 
 
 # if __name__ == '__main__':
-# 	with application.app_context():
-# 		application.run()
+	# application.run()

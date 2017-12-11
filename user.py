@@ -23,7 +23,7 @@ username = "test"
 password = "password1"
 public_key = "PUBLICKEY"
 
-file_name = "test.txt"
+# file_name = "test.txt"
 
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
 
@@ -42,27 +42,30 @@ def decode_string(key, string):
     return string.decode("utf-8")
 
 #create and authenticate users
-for i in range(2):
-	body = {"username": username + str(i), "password": str(encode_string(aes_key, password), 'utf-8'), "public_key": public_key}
+#return and allow custom user name and restrict dupes
+def registration():
+	body = {"username": username, "password": str(encode_string(aes_key, password), 'utf-8'), "public_key": public_key}
 	requests.post(full_serv_addr + "/register", data=json.dumps(body), headers=headers)
 	requests.post(full_serv_addr + "/authenticate", data=json.dumps(body), headers=headers) 
 
 #Upload
 def upload():
 	directory = os.path.dirname(os.path.realpath('__file__'))
+
+	file_name = encode_string(aes_key, input("File name: ")) #Where on the file system, blank for root
 	filePath = os.path.join(directory, file_name)
 	file_in = open(filePath)
 	file_contents = file_in.read()
 
-	dfs_directory_location = encode_string(aes_key, input("Directory: ")) #Where on the file system, blank for root
-	dfs_file_name = encode_string(aes_key, file_name)
+	dfs_file_name = encode_string(aes_key, file)
 	dfs_file_contents = encode_string(aes_key, file_contents)
 
-	body = {"directory_location": dfs_directory_location.decode("utf-8"), "file_name": dfs_file_name.decode("utf-8"), "file_contents": dfs_file_contents.decode("utf-8")}
-	uploaded_file = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
+	body = {"file_name": dfs_file_name, "file_contents": dfs_file_contents}
+	response = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
 
 
 if __name__ == '__main__':
+	registration()
 	print('###Welcome###\n\nFunctions: \nUpload\nDownload\nEdit\n')
 	while True:
 		command = input("Command: ")

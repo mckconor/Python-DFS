@@ -19,19 +19,6 @@ mongo_db = mongo_client.dfs
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
 server_key = "7596DE01913A20EC9069DBE508C5FEA3"
 
-mongo_db.users.drop()
-mongo_db.servers.drop()
-mongo_db.directories.drop()
-mongo_db.files.drop()
-
-# def encode_string(key, string):
-# 	encoded = []
-# 	for i in range(len(string)):
-# 		key_char = key[i % len(key)]
-# 		encoded_char = chr(ord(string[i]) + ord(key_char) % 256)
-# 		encoded.append(encoded_char)
-# 	encoded_string = "".join(encoded)
-# 	return base64.urlsafe_b64encode(AES.new(key, AES.MODE_ECB).encrypt(encoded_string))
 
 def encode_string(key, string):
 	ba = bytearray()
@@ -50,6 +37,37 @@ def test():
 	print("test post")
 	return jsonify({})
 
+##
+#Registers individ servers
+##
+@application_auth.route('/register_server', methods=['POST'])
+def register_server():
+	print("BOHOADOAOE")
+	server_data = request.get_json(force=True)
+
+
+	#very basic server auth
+	if decode_string(aes_key, server_data.get('server_key')) != server_key:
+		print("BALLLLLLLS")
+		jsonString = {"response_code": 403} #forbidden
+		return jsonify(jsonString)
+
+	server_id = get_new_server_details()
+	server_addr = request.remote_addr
+	
+	server = {"id": server_id,"address": server_addr}
+	mongo_db.servers.insert(server)
+
+	jsonString = {"response_code": 200}
+	return jsonify(jsonString)
+
+def get_new_server_details():
+	server_id = mongo_db.servers.count()
+	return server_id
+
+##
+#Registers users
+##
 @application_auth.route('/register', methods=['POST'])
 def register():
 	user_data = request.get_json(force=True)
@@ -57,13 +75,6 @@ def register():
 	user_username = user_data.get('username')
 	user_password = user_data.get('password')
 	public_key = user_data.get('public_key')
-
-	# user_password = encode_string(aes_key, user_password)
-
-	# if(mongo_db.users.find_one({'username': in_username})) == True:
-	# 	#User already exists
-	# 	jsonString = {"response_code": 500}
-	# 	return jsonify(jsonString)
 	
 	user = {"id": mongo_db.users.count()+1,"username": user_username, "password": user_password, "public_key": public_key, "server_key": ""}
 	mongo_db.users.insert(user)
