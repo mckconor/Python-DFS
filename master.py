@@ -7,6 +7,7 @@ import base64
 from Crypto.Cipher import AES
 from pprint import pprint
 from flask import Blueprint
+from encryption import encode_string, decode_string
 
 application_master = Blueprint('application_master',__name__)
 
@@ -15,19 +16,6 @@ port = "27017"
 mongo_db_addr = "mongodb://" + serv_addr + ":" + port
 mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs	#connect in to dfs db
-
-def encode_string(key, string):
-	ba = bytearray()
-	ba.extend(map(ord, string))
-	length = 16 - (len(string) % 16)
-	ba += bytes([length]) * length
-	return base64.urlsafe_b64encode(ba)
-
-def decode_string(key, string):
-    string = base64.urlsafe_b64decode(string)
-    string = string[:-string[-1]]
-    return string.decode("utf-8")
-
 
 @application_master.route('/file/upload', methods=['POST'])
 def upload():

@@ -11,6 +11,7 @@ import requests
 import json
 import os
 import sys
+from encryption import encode_string, decode_string
 
 application = Flask(__name__)
 
@@ -27,7 +28,7 @@ headers = {"Content-type": "application/json"}
 
 #Register for use with master system
 def register():
-	data = {"server_key": server_key}
+	data = {"server_key": str(encode_string(aes_key, server_key))}
 	response = requests.post(full_serv_addr + "/register_server", data=json.dumps(data), headers=headers)
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import pymongo
 import base64
 from Crypto.Cipher import AES
 from pprint import pprint
+from encryption import encode_string, decode_string
 
 application_auth = Blueprint('application_auth',__name__)
 
@@ -20,18 +21,6 @@ aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
 server_key = "7596DE01913A20EC9069DBE508C5FEA3"
 
 
-def encode_string(key, string):
-	ba = bytearray()
-	ba.extend(map(ord, string))
-	length = 16 - (len(string) % 16)
-	ba += bytes([length]) * length
-	return base64.urlsafe_b64encode(ba)
-
-def decode_string(key, string):
-    string = base64.urlsafe_b64decode(string)
-    string = string[:-string[-1]]
-    return string.decode('utf-8')
-
 @application_auth.route('/test', methods=['GET', 'POST'])
 def test():
 	print("test post")
@@ -42,13 +31,12 @@ def test():
 ##
 @application_auth.route('/register_server', methods=['POST'])
 def register_server():
-	print("BOHOADOAOE")
 	server_data = request.get_json(force=True)
 
-
 	#very basic server auth
-	if decode_string(aes_key, server_data.get('server_key')) != server_key:
-		print("BALLLLLLLS")
+	if server_data.get('server_key') != str(encode_string(aes_key, server_key)):
+		print("serv key in: ", server_data.get('server_key'))
+		print("serv key here: ", encode_string(aes_key, server_key))
 		jsonString = {"response_code": 403} #forbidden
 		return jsonify(jsonString)
 

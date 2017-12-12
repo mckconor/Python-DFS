@@ -9,6 +9,7 @@ from pprint import pprint
 import requests
 import json
 import os
+from encryption import encode_string, decode_string
 
 #DB and server details
 serv_addr = "localhost"
@@ -28,18 +29,6 @@ public_key = "PUBLICKEY"
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
 
 headers = {"Content-type": "application/json"}
-
-def encode_string(key, string):
-	ba = bytearray()
-	ba.extend(map(ord, string))
-	length = 16 - (len(string) % 16)
-	ba += bytes([length]) * length
-	return base64.urlsafe_b64encode(ba)
-
-def decode_string(key, string):
-    string = base64.urlsafe_b64decode(string)
-    string = string[:-string[-1]]
-    return string.decode("utf-8")
 
 #create and authenticate users
 #return and allow custom user name and restrict dupes
