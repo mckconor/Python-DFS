@@ -11,11 +11,13 @@ import requests
 import json
 import os
 import sys
-from encryption import encode_string, decode_string
+from encryption import AESCipher
 
 application = Flask(__name__)
 
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
+cipher = AESCipher(aes_key)
+
 server_key = "7596DE01913A20EC9069DBE508C5FEA3"
 
 serv_addr = "localhost"
@@ -28,7 +30,7 @@ headers = {"Content-type": "application/json"}
 
 #Register for use with master system
 def register():
-	data = {"server_key": str(encode_string(aes_key, server_key))}
+	data = {"server_key": str(cipher.encode_string(server_key))}
 	response = requests.post(full_serv_addr + "/register_server", data=json.dumps(data), headers=headers)
 
 if __name__ == '__main__':

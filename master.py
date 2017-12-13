@@ -7,7 +7,8 @@ import base64
 from Crypto.Cipher import AES
 from pprint import pprint
 from flask import Blueprint
-from encryption import encode_string, decode_string
+from encryption import AESCipher
+import array
 
 application_master = Blueprint('application_master',__name__)
 
@@ -17,13 +18,18 @@ mongo_db_addr = "mongodb://" + serv_addr + ":" + port
 mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs	#connect in to dfs db
 
+aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
+cipher = AESCipher(aes_key)
+
 @application_master.route('/file/upload', methods=['POST'])
 def upload():
-	data_in = request.get_data()
+	data_in = request.get_json(force=True)
 	print("hitting upload")
 
-	file_name = decode_string(data_in.get("file_name"))
-	file_contents = decode_string(data_in.get("file_contents"))
+	temp = data_in.get("file_name")
+	print(temp)
+	file_name = cipher.decode_string(temp.encode())
+	file_contents = cipher.decode_string(str(data_in.get("file_contents")).encode())
 
 	#Find a free server
 	server = mongo_db.servers.findOne()

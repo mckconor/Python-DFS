@@ -7,7 +7,7 @@ import pymongo
 import base64
 from Crypto.Cipher import AES
 from pprint import pprint
-from encryption import encode_string, decode_string
+from encryption import AESCipher
 
 application_auth = Blueprint('application_auth',__name__)
 
@@ -18,6 +18,8 @@ mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs
 
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
+cipher = AESCipher(aes_key)
+
 server_key = "7596DE01913A20EC9069DBE508C5FEA3"
 
 
@@ -34,9 +36,9 @@ def register_server():
 	server_data = request.get_json(force=True)
 
 	#very basic server auth
-	if server_data.get('server_key') != str(encode_string(aes_key, server_key)):
+	if cipher.decode_string(server_data.get('server_key')) != server_key:
 		print("serv key in: ", server_data.get('server_key'))
-		print("serv key here: ", encode_string(aes_key, server_key))
+		print("serv key here: ", server_key)
 		jsonString = {"response_code": 403} #forbidden
 		return jsonify(jsonString)
 
