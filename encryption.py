@@ -6,8 +6,8 @@ from Crypto.Cipher import AES
 
 BS = 16
 
-padding = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-remove_padding = lambda s : s[0:-s[-1]]
+def padding(string):
+	return string + " " * (AES.block_size - len(string) % AES.block_size)
 
 class AESCipher:
 
@@ -15,13 +15,12 @@ class AESCipher:
 		self.key = hashlib.sha256(key.encode('utf-8')).digest()
 
 	def encode_string(self, raw):
-		raw = padding(raw)
-		iv = Random.new().read( AES.block_size )
-		cipher = AES.new( self.key, AES.MODE_CBC, iv )
-		return base64.b64encode( iv + cipher.encrypt( raw ) )
+		cipher = AES.new(self.key, AES.MODE_ECB)
+		padded_data = padding(raw)
+		enc = base64.b64encode(cipher.encrypt(padded_data))
+		return enc
 
 	def decode_string(self, enc):
-		enc = base64.b64decode(enc)
-		iv = enc[:16]
-		cipher = AES.new(self.key, AES.MODE_CBC, iv )
-		return remove_padding(cipher.decrypt( enc[16:] ))
+		cipher = AES.new(self.key, AES.MODE_ECB)
+		decoded_data = cipher.decrypt(base64.b64decode(enc))
+		return decoded_data.strip()

@@ -35,10 +35,10 @@ def test():
 def register_server():
 	server_data = request.get_json(force=True)
 
+	server_key_in = server_data.get('server_key').encode()
+
 	#very basic server auth
-	if cipher.decode_string(server_data.get('server_key')) != server_key:
-		print("serv key in: ", server_data.get('server_key'))
-		print("serv key here: ", server_key)
+	if cipher.decode_string(server_key_in).decode() != server_key:
 		jsonString = {"response_code": 403} #forbidden
 		return jsonify(jsonString)
 

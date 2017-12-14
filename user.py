@@ -41,17 +41,67 @@ def registration():
 def upload():
 	directory = os.path.dirname(os.path.realpath('__file__'))
 
-	file_name = input("File name: ") #Where on the file system, blank for root
+	file_name = input("File name: ")
 	filePath = os.path.join(directory, file_name)
 	file_in = open(filePath)
 	file_contents = file_in.read()
 
-	dfs_file_name = str(cipher.encode_string(file_name))
-	dfs_file_contents = str(cipher.encode_string(file_contents))
+	dfs_file_name = cipher.encode_string(file_name).decode()
+	dfs_file_contents = cipher.encode_string(file_contents).decode()
 
 	body = {"file_name": dfs_file_name, "file_contents": dfs_file_contents}
 	response = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
 
+#Download
+def download():
+	file_name = input("File name: ") #Name on server
+	file_name = cipher.encode_string(file_name).decode()
+
+	body = {"file_name": file_name}
+	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
+
+	if response.json().get("response_code") is 404:
+		print("ERR: file not found")
+		return
+
+	new_file_name = input("Save as: ")
+	file_contents = cipher.decode_string(response.json().get("file_contents").encode())
+	print(file_contents)
+
+	file = open(new_file_name, "wb")
+	file.write(file_contents)
+	file.close()
+
+
+#Edit
+def edit():
+	file_name = input("File name: ") #Name on server
+	file_name = cipher.encode_string(file_name).decode()
+
+	body = {"file_name": file_name}
+	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
+
+	if response.json().get("response_code") is 404:
+		print("ERR: file not found")
+		return
+
+	file_contents = cipher.decode_string(response.json().get("file_contents").encode())
+
+	file_contents_str = file_contents.decode()
+	append_text = input("Text to append: ")
+
+	full_contents = file_contents_str + append_text
+
+	#Now replace contents on server
+	dfs_file_contents = cipher.encode_string(full_contents).decode()
+
+	body = {"file_name": file_name, "file_contents": dfs_file_contents}
+	response = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
+
+#List
+def listAll():
+	response = requests.get(full_serv_addr + "/file/list", headers=headers)
+	print(response.json())
 
 if __name__ == '__main__':
 	registration()
@@ -59,9 +109,13 @@ if __name__ == '__main__':
 	while True:
 		command = input("Command: ")
 		
-		if(command == 'Upload'):
+		if(command.lower() == 'upload'):
 			upload()
-		elif(command == 'Download'):
+		elif(command.lower() == 'download'):
 			download()
-		else:
+		elif(command.lower() == 'edit'):
 			edit()
+		elif(command.lower() == 'list'):	#list all files on dfs
+			listAll()
+		else:
+			print("Unrecognized command, please try again.")
