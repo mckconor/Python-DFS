@@ -65,13 +65,15 @@ def register():
 	user_username = user_data.get('username')
 	user_password = user_data.get('password')
 	public_key = user_data.get('public_key')
+
+	user_id =  mongo_db.users.count()+1
 	
-	user = {"id": mongo_db.users.count()+1,"username": user_username, "password": user_password, "public_key": public_key, "server_key": ""}
+	user = {"id": user_id,"username": user_username, "password": user_password, "public_key": public_key, "server_key": ""}
 	mongo_db.users.insert(user)
 
 	print(user)
 
-	jsonString = {"response_code": 200}
+	jsonString = {"id": user_id}
 	return jsonify(jsonString)
 
 @application_auth.route('/authenticate', methods=['POST'])

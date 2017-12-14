@@ -46,6 +46,19 @@ def unlockFile():
 
 	return jsonify({"response_code": 200})
 
+@application_lock.route('/file/check', methods=['POST'])
+def checkLock():
+	data_in = request.get_json(force=True)
+
+	file_name = cipher.decode_string(data_in.get("file_name")).decode()
+
+	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+
+	if(file_existing.get("locked") is True):
+		return jsonify({"response_code": 423})
+	else:
+		return jsonify({"response_code": 200}) 
+
 
 @application_lock.route('/file/add_to_wait_queue', methods=['POST'])
 def addToQueue():

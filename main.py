@@ -6,12 +6,12 @@ import base64
 from Crypto.Cipher import AES
 from pprint import pprint
 
-from master import application_master
+from directoryServ import application_manager
 from authServ import application_auth
 from lockServ import application_lock
 
 application = Flask(__name__)
-application.register_blueprint(application_master)
+application.register_blueprint(application_manager)
 application.register_blueprint(application_auth)
 application.register_blueprint(application_lock)
 

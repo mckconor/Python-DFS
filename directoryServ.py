@@ -12,8 +12,9 @@ from stringHelper import getFileName, getFileExtension, getFormattedFileName
 import array
 import requests
 import json
+import time
 
-application_master = Blueprint('application_master',__name__)
+application_manager = Blueprint('application_manager',__name__)
 
 serv_addr = "localhost"
 port = "27017"
@@ -27,7 +28,7 @@ cipher = AESCipher(aes_key)
 
 headers = {"Content-type": "application/json"}
 
-@application_master.route('/file/upload', methods=['POST'])
+@application_manager.route('/file/upload', methods=['POST'])
 def upload():
 	data_in = request.get_json(force=True)
 	print("hitting upload")
@@ -41,11 +42,15 @@ def upload():
 	server_info = {"server_id": server.get("id"), "server_address": server.get("port")}
 
 	#Store
-	data = {"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info, "locked": False}
+	data = {"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info, "locked": False, "last_modified": time.time()}
 
 	#does it already exist on this server?
 	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
-	if file_existing is not None:
+
+	if file_existing is not None:	
+		#Exists? Is it locked (ie: don't overwrite)
+		if file_existing.get("locked") is True:
+			return jsonify({"response_code": 423})
 		mongo_db.files.update_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)}, {"$set": data})
 	else:
 		mongo_db.files.insert(data) #into files db (ie: where the file contents are)
@@ -55,23 +60,25 @@ def upload():
 
 	return jsonify({"response_code": 200})
 
-@application_master.route('/file/download', methods=['POST'])
+@application_manager.route('/file/download', methods=['POST'])
 def download():
 	data_in = request.get_json(force=True)
 	print("hitting download")
 
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
 
+	file =  mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+	if file is None:
+		jsonify({"response_code": 500})
+
+	server = file.get("server")
+	if server is None:
+		return jsonify({"response_code": 404})
+
 	#Find where file is
 	file_requested = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
 	if file_requested.get("locked") is True:
-		# user_data = {"user_addr": request.remote_addr}
-		# requests.post(full_serv_addr + "/file/add_to_wait_queue", data=json.dumps(user_data), headers=headers)
 		return jsonify({"response_code": 423})
-
-	server = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)}).get("server")
-	if server is None:
-		return jsonify({"response_code": 404})
 
 	#Grab contents
 	print(server)
@@ -83,7 +90,7 @@ def download():
 	response = {"file_name": cipher.encode_string(file_name).decode(), "file_contents": file_contents}
 	return jsonify(response)
 
-@application_master.route('/file/list', methods=['GET'])
+@application_manager.route('/file/list', methods=['GET'])
 def listAll():
 	all_files = mongo_db.files.find()
 
