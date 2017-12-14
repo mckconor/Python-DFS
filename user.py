@@ -60,8 +60,11 @@ def download():
 	body = {"file_name": file_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
 
-	if response.json().get("response_code") is 404:
+	if response.json().get("response_code") == 404:
 		print("ERR: file not found")
+		return
+	elif response.json().get("response_code") == 423:
+		print("ERR: file in use")
 		return
 
 	new_file_name = input("Save as: ")
@@ -80,9 +83,13 @@ def edit():
 
 	body = {"file_name": file_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
+	lock_response = requests.post(full_serv_addr + "/file/lock", data=json.dumps(body), headers=headers)
 
-	if response.json().get("response_code") is 404:
+	if response.json().get("response_code") == 404:
 		print("ERR: file not found")
+		return
+	elif response.json().get("response_code") == 423:
+		print("ERR: file in use")
 		return
 
 	file_contents = cipher.decode_string(response.json().get("file_contents").encode())

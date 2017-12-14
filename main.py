@@ -8,10 +8,12 @@ from pprint import pprint
 
 from master import application_master
 from authServ import application_auth
+from lockServ import application_lock
 
 application = Flask(__name__)
 application.register_blueprint(application_master)
 application.register_blueprint(application_auth)
+application.register_blueprint(application_lock)
 
 serv_addr = "localhost"
 port = "27017"
@@ -23,6 +25,7 @@ mongo_db.users.drop()
 mongo_db.servers.drop()
 mongo_db.directories.drop()
 mongo_db.files.drop()
+mongo_db.locks.drop()
 
 if __name__ == '__main__':
 	application.run()

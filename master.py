@@ -8,12 +8,16 @@ from Crypto.Cipher import AES
 from pprint import pprint
 from flask import Blueprint
 from encryption import AESCipher
+from stringHelper import getFileName, getFileExtension, getFormattedFileName
 import array
+import requests
+import json
 
 application_master = Blueprint('application_master',__name__)
 
 serv_addr = "localhost"
 port = "27017"
+full_serv_addr = "http://127.0.0.1:5000"
 mongo_db_addr = "mongodb://" + serv_addr + ":" + port
 mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs	#connect in to dfs db
@@ -21,14 +25,7 @@ mongo_db = mongo_client.dfs	#connect in to dfs db
 aes_key = "94CA61A3CFC9BB7B8FF07C723917851A"
 cipher = AESCipher(aes_key)
 
-def getFileName(string):
-	return string.split(".")[0]
-
-def getFileExtension(string):
-	return string.split(".")[1]
-
-def getFormattedFileName(string):
-	return getFileName(string) + "\u2024" + getFileExtension(string)
+headers = {"Content-type": "application/json"}
 
 @application_master.route('/file/upload', methods=['POST'])
 def upload():
@@ -66,11 +63,17 @@ def download():
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
 
 	#Find where file is
+	file_requested = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+	if file_requested.get("locked") is True:
+		# user_data = {"user_addr": request.remote_addr}
+		# requests.post(full_serv_addr + "/file/add_to_wait_queue", data=json.dumps(user_data), headers=headers)
+		return jsonify({"response_code": 423})
+
 	server = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)}).get("server")
 	if server is None:
 		return jsonify({"response_code": 404})
 
-	#Grab them contents boii
+	#Grab contents
 	print(server)
 	file_out = mongo_db.servers.find_one({"id": server.get("server_id")}).get(getFormattedFileName(file_name))
 	
