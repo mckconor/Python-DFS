@@ -30,7 +30,12 @@ headers = {"Content-type": "application/json"}
 
 #Register for use with master system
 def register():
-	data = {"server_key": cipher.encode_string(server_key).decode()}
+	server_name = input("Enter server name: ")
+	if(mongo_db.servers.find_one({"server_name": server_name})) is not None:
+		print("ERR: Server with name already exists!")
+		sys.exit(1)
+
+	data = {"server_name": server_name, "server_key": cipher.encode_string(server_key).decode()}
 	response = requests.post(full_serv_addr + "/register_server", data=json.dumps(data), headers=headers)
 
 if __name__ == '__main__':

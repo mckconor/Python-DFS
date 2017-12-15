@@ -45,7 +45,7 @@ def register_server():
 	server_id = get_new_server_details()
 	server_addr = request.remote_addr
 	
-	server = {"id": server_id,"address": server_addr}
+	server = {"id": server_id,"server_name":server_data.get("server_name"),"address": server_addr}
 	mongo_db.servers.insert(server)
 
 	jsonString = {"response_code": 200}

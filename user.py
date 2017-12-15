@@ -9,7 +9,10 @@ import requests
 import json
 import os
 import time
+import datetime
 from encryption import AESCipher
+from random import *
+from stringHelper import getFileName, getFileExtension, getFormattedFileName
 
 #DB and server details
 serv_addr = "localhost"
@@ -20,7 +23,8 @@ mongo_client = pymongo.MongoClient(mongo_db_addr)
 mongo_db = mongo_client.dfs
 
 #User details
-username = "test"
+userId = -1
+username = "test_" + str(randint(1,10000))
 password = "password1"
 public_key = "PUBLICKEY"
 
@@ -38,6 +42,9 @@ def registration():
 	regResponse = requests.post(full_serv_addr + "/register", data=json.dumps(body), headers=headers)
 	authResponse = requests.post(full_serv_addr + "/authenticate", data=json.dumps(body), headers=headers)
 
+	global userId
+	userId = regResponse.json().get("id")
+
 #Upload
 def upload():
 	directory = os.path.dirname(os.path.realpath('__file__'))
@@ -47,10 +54,12 @@ def upload():
 	file_in = open(filePath)
 	file_contents = file_in.read()
 
+	server_name = input("Store to drive: ")
+
 	dfs_file_name = cipher.encode_string(file_name).decode()
 	dfs_file_contents = cipher.encode_string(file_contents).decode()
 
-	body = {"file_name": dfs_file_name, "file_contents": dfs_file_contents}
+	body = {"file_name": dfs_file_name, "file_contents": dfs_file_contents, "server_name": server_name}
 	response = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
 
 def poll(file_name):
@@ -65,6 +74,8 @@ def poll(file_name):
 def download():
 	file_name = input("File name: ") #Name on server
 	file_name = cipher.encode_string(file_name).decode()
+
+	#Check cache
 
 	body = {"file_name": file_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
@@ -83,8 +94,13 @@ def download():
 			time.sleep(5)
 
 	new_file_name = input("Save as: ")
+	file_name = cipher.decode_string(response.json().get("file_name").encode()).decode()
 	file_contents = cipher.decode_string(response.json().get("file_contents").encode())
-	print(file_contents)
+	file_timestamp = cipher.decode_string(response.json().get("last_modified").encode()).decode()
+
+	#add to cache
+	file_cache_data = {"file_name": file_name, "file_contents": file_contents, "last_modified": file_timestamp}
+	addToCache(file_cache_data)
 
 	file = open(new_file_name, "wb")
 	file.write(file_contents)
@@ -133,11 +149,14 @@ def listAll():
 	print(response.json())
 
 #Caching!
-def addToCache():
+def addToCache(file):
 	print("adding!")
-	user = mongo_db.users.find_one(self)
+	user = mongo_db.users.find_one({"id": userId})
+	print(file.get("file_name"))
+	#Add file to user
+	mongo_db.users.update_one(user, {"$set": {getFormattedFileName(file.get("file_name")): file}})
 
-def checkCheck(file_name, file_timestamp):
+def checkCheck(file_name):
 	print("checking!")
 
 def getFromCache():

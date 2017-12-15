@@ -38,18 +38,19 @@ def upload():
 	file_contents = cipher.decode_string(data_in.get("file_contents").encode().decode())
 
 	#Find a free server
-	server = mongo_db.servers.find_one()
-	server_info = {"server_id": server.get("id"), "server_address": server.get("port")}
+	server = mongo_db.servers.find_one({"server_name": data_in.get("server_name")})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
 
 	#Store
 	data = {"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info, "locked": False, "last_modified": time.time()}
 
 	#does it already exist on this server?
-	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info})
 
 	if file_existing is not None:	
 		#Exists? Is it locked (ie: don't overwrite)
 		if file_existing.get("locked") is True:
+			print("ba;;s")
 			return jsonify({"response_code": 423})
 		mongo_db.files.update_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)}, {"$set": data})
 	else:
@@ -87,7 +88,9 @@ def download():
 	file_contents=cipher.encode_string(file_out.get("file_contents").decode()).decode()
 	print(file_contents)
 
-	response = {"file_name": cipher.encode_string(file_name).decode(), "file_contents": file_contents}
+	file_timestamp = cipher.encode_string(str(file.get("last_modified"))).decode()
+
+	response = {"file_name": cipher.encode_string(file_name).decode(), "file_contents": file_contents, "last_modified": file_timestamp}
 	return jsonify(response)
 
 @application_manager.route('/file/list', methods=['GET'])
