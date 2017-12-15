@@ -13,6 +13,8 @@ import datetime
 from encryption import AESCipher
 from random import *
 from stringHelper import getFileName, getFileExtension, getFormattedFileName
+import responseCodes
+import math
 
 #DB and server details
 serv_addr = "localhost"
@@ -73,11 +75,16 @@ def poll(file_name):
 #Download
 def download():
 	file_name = input("File name: ") #Name on server
-	file_name = cipher.encode_string(file_name).decode()
-
-	server_name = cipher.encode_string(input("Download from server: ")).decode()
+	server_name = input("Download from server: ") 
 
 	#Check cache
+	take_from_cache = cacheCheck(file_name, server_name)
+	if take_from_cache:
+		getFromCache(file_name, server_name)
+		return
+
+	file_name = cipher.encode_string(file_name).decode()
+	server_name = cipher.encode_string(server_name).decode()
 
 	body = {"file_name": file_name, "server_name": server_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
@@ -102,7 +109,7 @@ def download():
 
 	#add to cache
 	file_cache_data = {"file_name": file_name, "file_contents": file_contents, "last_modified": file_timestamp}
-	addToCache(file_cache_data)
+	addToCache(file_cache_data, cipher.decode_string(server_name).decode())
 
 	file = open(new_file_name, "wb")
 	file.write(file_contents)
@@ -153,18 +160,53 @@ def listAll():
 	print(response.json())
 
 #Caching!
-def addToCache(file):
-	print("adding!")
+def addToCache(file, server_name):
 	user = mongo_db.users.find_one({"id": userId})
-	print(file.get("file_name"))
+	#Update to mention what server it's from
+	file.update({"server_source": server_name})
 	#Add file to user
 	mongo_db.users.update_one(user, {"$set": {getFormattedFileName(file.get("file_name")): file}})
 
-def checkCheck(file_name):
-	print("checking!")
+def cacheCheck(file_name, server_name):
+	#Check file timestamp on dfs
+	body = {"file_name": cipher.encode_string(file_name).decode(), "server_name": cipher.encode_string(server_name).decode()}
+	response = requests.post(full_serv_addr + "/file/info", data=json.dumps(body), headers=headers)
 
-def getFromCache():
+	time_stamp = response.json().get("file_timestamp")
+
+	#time stamp of file on client?
+	user = mongo_db.users.find_one({"id": userId})
+	cached_file = user.get(getFormattedFileName(file_name))
+	if cached_file is None:
+		#download
+		return False
+
+	cached_time_stamp = cached_file.get("last_modified")
+
+	print(float(time_stamp))
+	print(float(cached_time_stamp))
+	if not math.isclose(float(time_stamp), float(cached_time_stamp), abs_tol=1):
+		#download newer
+		return False
+	else:
+		#use cached version
+		print("accessing cached version")
+		return True	
+
+
+def getFromCache(file_name, server_name):
 	print("getting!")
+
+	user = mongo_db.users.find_one({"id": userId})
+	cached_file = user.get(getFormattedFileName(file_name))
+	
+	new_file_name = input("Save as: ")
+	file_contents = cached_file.get("file_contents")
+
+	file = open(new_file_name, "wb")
+	file.write(file_contents)
+	file.close()
+
 
 if __name__ == '__main__':
 	registration()
@@ -180,7 +222,5 @@ if __name__ == '__main__':
 			edit()
 		elif(command.lower() == 'list'):	#list all files on dfs
 			listAll()
-		elif(command.lower() == 'test'):
-			addToCache()
 		else:
 			print("Unrecognized command, please try again.")

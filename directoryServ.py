@@ -94,6 +94,27 @@ def download():
 	response = {"file_name": cipher.encode_string(file_name).decode(), "file_contents": file_contents, "last_modified": file_timestamp}
 	return jsonify(response)
 
+@application_manager.route('/file/info', methods=['POST'])
+def file_info():
+	#For getting info about a file
+	data_in = request.get_json(force=True)
+
+	server_name=cipher.decode_string( data_in.get("server_name")).decode()
+	file_name = cipher.decode_string(data_in.get("file_name")).decode()
+
+	server = mongo_db.servers.find_one({"server_name": server_name})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+
+	file =  mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info})
+	if file is None:
+		jsonify({"response_code": 404})
+
+	file_timestamp = file.get("last_modified")
+
+	body = {"file_timestamp": file_timestamp}
+	return jsonify(body)
+
+
 @application_manager.route('/file/list', methods=['GET'])
 def listAll():
 	all_files = mongo_db.files.find()
