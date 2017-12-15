@@ -44,6 +44,10 @@ def registration():
 	regResponse = requests.post(full_serv_addr + "/register", data=json.dumps(body), headers=headers)
 	authResponse = requests.post(full_serv_addr + "/authenticate", data=json.dumps(body), headers=headers)
 
+	if authResponse.json().get == 404:
+		print("User not authorized to access this server, exiting...")
+		sys.exit(1)
+
 	global userId
 	userId = regResponse.json().get("id")
 
