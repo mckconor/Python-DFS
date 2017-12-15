@@ -40,8 +40,12 @@ def unlockFile():
 	data_in = request.get_json(force=True)
 
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
+	server_name = cipher.decode_string(data_in.get("server_name")).decode()
 
-	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+	server = mongo_db.servers.find_one({"server_name": server_name})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+
+	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info})
 	mongo_db.files.update_one(file_existing, {"$set": {"locked": False}})
 
 	return jsonify({"response_code": 200})
@@ -51,8 +55,12 @@ def checkLock():
 	data_in = request.get_json(force=True)
 
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
+	server_name = cipher.decode_string(data_in.get("server_name")).decode()
 
-	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name)})
+	server = mongo_db.servers.find_one({"server_name": server_name})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+
+	file_existing = mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info})
 
 	if(file_existing.get("locked") is True):
 		return jsonify({"response_code": 423})

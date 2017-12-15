@@ -54,7 +54,7 @@ def upload():
 	file_in = open(filePath)
 	file_contents = file_in.read()
 
-	server_name = input("Store to drive: ")
+	server_name = cipher.encode_string(input("Store to server: ")).decode()
 
 	dfs_file_name = cipher.encode_string(file_name).decode()
 	dfs_file_contents = cipher.encode_string(file_contents).decode()
@@ -75,9 +75,11 @@ def download():
 	file_name = input("File name: ") #Name on server
 	file_name = cipher.encode_string(file_name).decode()
 
+	server_name = cipher.encode_string(input("Download from server: ")).decode()
+
 	#Check cache
 
-	body = {"file_name": file_name}
+	body = {"file_name": file_name, "server_name": server_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
 
 	if response.json().get("response_code") == 404:
@@ -112,7 +114,9 @@ def edit():
 	file_name = input("File name: ") #Name on server
 	file_name = cipher.encode_string(file_name).decode()
 
-	body = {"file_name": file_name}
+	server_name = cipher.encode_string(input("Edit on server: ")).decode()
+
+	body = {"file_name": file_name, "server_name": server_name}
 	response = requests.post(full_serv_addr + "/file/download", data=json.dumps(body), headers=headers)
 	lock_response = requests.post(full_serv_addr + "/file/lock", data=json.dumps(body), headers=headers)
 
@@ -140,7 +144,7 @@ def edit():
 	dfs_file_contents = cipher.encode_string(full_contents).decode()
 
 	unlock_response = requests.post(full_serv_addr + "/file/unlock", data=json.dumps(body), headers=headers)
-	body = {"file_name": file_name, "file_contents": dfs_file_contents}
+	body = {"file_name": file_name, "file_contents": dfs_file_contents, "server_name": server_name}
 	response = requests.post(full_serv_addr + "/file/upload", data=json.dumps(body), headers=headers)
 
 #List
