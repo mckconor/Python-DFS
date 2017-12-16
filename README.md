@@ -49,3 +49,7 @@ This is the client interface for use with the system. The user is presented with
 3. Authentication
 
 -- Not as visible from the front end, the user's randomly generated username and set password are sent to be registered, then the user is authenticated where a server key is given to them. Done for simplicity and ease of testing. 
+
+4. <ATTEMPTED> Replication
+
+-- Can be found on Replication branch. Every server created was replicated, one with "w" and the other with "r" permissions. Uploads go to the "w" server and are replicated to the "r" server when complete (WORKING). Downloads would pull from the "r" server given more time. Edit is broken on this branch.
