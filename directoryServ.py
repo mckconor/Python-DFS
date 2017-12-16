@@ -37,9 +37,9 @@ def upload():
 	file_name = cipher.decode_string(temp.encode()).decode()
 	file_contents = cipher.decode_string(data_in.get("file_contents").encode().decode())
 
-	#Find a free server
-	server = mongo_db.servers.find_one({"server_name":  cipher.decode_string(data_in.get("server_name")).decode()})
-	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+	#Find server
+	server = mongo_db.servers.find_one({"server_name":  cipher.decode_string(data_in.get("server_name")).decode(), "server_rights": "w"})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("address"), "server_rights": "w"}
 
 	#Store
 	data = {"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info, "locked": False, "last_modified": time.time()}
@@ -59,7 +59,27 @@ def upload():
 	server_data = {"file_name": file_name, "file_contents": file_contents}
 	mongo_db.servers.update_one(server, {"$set": {getFormattedFileName(file_name): server_data}})
 
+	replicate(server, file_name)
+
 	return jsonify({"response_code": 200})
+
+
+def replicate(server_info, file_name):
+	#Wrote to write server, update the read server
+	server_w = mongo_db.servers.find_one(server_info)
+
+	server_to_update = mongo_db.servers.find_one({"server_name": server_info.get("server_name"), "server_rights": "r"})
+	
+	file = server_w.get(getFormattedFileName(file_name))
+	file_contents = file.get("file_contents")
+
+	new_server_info = {"server_id": server_to_update.get("id"), "server_name": server_to_update.get("server_name"), "server_address": server_to_update.get("port"), "server_rights": "r"}
+	mongo_db.files.update_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info}, {"$set": {"server": new_server_info}})
+
+	server_data = {"file_name": file_name, "file_contents": file_contents}
+	mongo_db.servers.update_one(server_to_update, {"$set": {getFormattedFileName(file_name): server_data}})
+
+
 
 @application_manager.route('/file/download', methods=['POST'])
 def download():
@@ -67,8 +87,8 @@ def download():
 	print("hitting download")
 
 	server_name=cipher.decode_string( data_in.get("server_name")).decode()
-	server = mongo_db.servers.find_one({"server_name": server_name})
-	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+	server = mongo_db.servers.find_one({"server_name": server_name, "server_rights": "w"})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("address"), "server_rights": "w"}
 	print(server_info)
 
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
@@ -102,9 +122,10 @@ def file_info():
 	server_name=cipher.decode_string( data_in.get("server_name")).decode()
 	file_name = cipher.decode_string(data_in.get("file_name")).decode()
 
-	server = mongo_db.servers.find_one({"server_name": server_name})
-	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("port")}
+	server = mongo_db.servers.find_one({"server_name": server_name, "server_rights": "w"})
+	server_info = {"server_id": server.get("id"), "server_name": server.get("server_name"), "server_address": server.get("address"), "server_rights": "w"}
 
+	print(server_info)
 	file =  mongo_db.files.find_one({"file_name": getFileName(file_name), "file_type": getFileExtension(file_name), "server": server_info})
 	if file is None:
 		jsonify({"response_code": 404})

@@ -42,18 +42,23 @@ def register_server():
 		jsonString = {"response_code": 403} #forbidden
 		return jsonify(jsonString)
 
-	server_id = get_new_server_details()
+	server_id = mongo_db.servers.count()
 	server_addr = request.remote_addr
-	
-	server = {"id": server_id,"server_name":server_data.get("server_name"),"address": server_addr}
+
+	# if(mongo_db.servers.count() < 1):
+		#Is replicator server (only implementing for one)
+	server = {"id": server_id,"server_name":server_data.get("server_name"),"address": server_addr, "server_rights": "w"}
 	mongo_db.servers.insert(server)
+	server = {"id": server_id+1,"server_name":server_data.get("server_name"),"address": server_addr, "server_rights": "r"}
+	mongo_db.servers.insert(server)
+	# else:
+	# 	server = {"id": server_id,"server_name":server_data.get("server_name"),"address": server_addr, "server_rights": "rw"}
+	# 	mongo_db.servers.insert(server)
+
+	
 
 	jsonString = {"response_code": 200}
 	return jsonify(jsonString)
-
-def get_new_server_details():
-	server_id = mongo_db.servers.count()
-	return server_id
 
 ##
 #Registers users
